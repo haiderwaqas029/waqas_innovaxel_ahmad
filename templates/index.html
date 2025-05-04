@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h2 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h3 {
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+            margin-top: 30px;
+        }
+        form {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        input[type="text"] {
+            width: 70%;
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .result-box {
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 5px;
+            border-left: 5px solid;
+        }
+        .success {
+            background-color: #e8f5e9;
+            border-color: #4caf50;
+            color: #2e7d32;
+        }
+        .error {
+            background-color: #ffebee;
+            border-color: #f44336;
+            color: #c62828;
+        }
+        .url-display {
+            word-break: break-all;
+            margin: 10px 0;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h2>URL Shortener Service</h2>
+
+    <!-- Create Short URL -->
+    <h3>Create Short URL</h3>
+    <form id="shortenForm">
+        <div class="form-group">
+            <label for="urlInput">Enter URL to shorten:</label>
+            <input type="text" id="urlInput" placeholder="https://example.com" required>
+        </div>
+        <button type="submit">Shorten URL</button>
+    </form>
+    <div id="shortenedUrl" class="result-box"></div>
+
+    <!-- Retrieve Original URL -->
+    <h3>Retrieve Original URL</h3>
+    <form id="retrieveForm">
+        <div class="form-group">
+            <label for="codeInput">Enter short code:</label>
+            <input type="text" id="codeInput" placeholder="abc123" required>
+        </div>
+        <button type="submit">Retrieve URL</button>
+    </form>
+    <div id="retrievedUrl" class="result-box"></div>
+
+    <!-- Update Short URL -->
+    <h3>Update Short URL</h3>
+    <form id="updateForm">
+        <div class="form-group">
+            <label for="updateCodeInput">Enter short code to update:</label>
+            <input type="text" id="updateCodeInput" placeholder="abc123" required>
+        </div>
+        <div class="form-group">
+            <label for="newUrlInput">Enter new URL:</label>
+            <input type="text" id="newUrlInput" placeholder="https://new-example.com" required>
+        </div>
+        <button type="submit">Update URL</button>
+    </form>
+    <div id="updatedUrl" class="result-box"></div>
+
+    <!-- Delete Short URL -->
+    <h3>Delete Short URL</h3>
+    <form id="deleteForm">
+        <div class="form-group">
+            <label for="deleteCodeInput">Enter short code to delete:</label>
+            <input type="text" id="deleteCodeInput" placeholder="abc123" required>
+        </div>
+        <button type="submit">Delete URL</button>
+    </form>
+    <div id="deleteStatus" class="result-box"></div>
+
+    <!-- Get URL Statistics -->
+    <h3>Get URL Statistics</h3>
+    <form id="statsForm">
+        <div class="form-group">
+            <label for="statsCodeInput">Enter short code:</label>
+            <input type="text" id="statsCodeInput" placeholder="abc123" required>
+        </div>
+        <button type="submit">Get Statistics</button>
+    </form>
+    <div id="statsResult" class="result-box"></div>
+
+    <script>
+        // Helper function to display messages
+        function showMessage(element, message, isError = false) {
+            element.innerHTML = message;
+            element.className = isError ? 'error result-box' : 'success result-box';
+        }
+
+        // 3.1 Create Short URL
+        document.getElementById('shortenForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const url = document.getElementById('urlInput').value;
+            const output = document.getElementById('shortenedUrl');
+            output.textContent = "Processing...";
+
+            try {
+                const response = await fetch('/shorten', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+                
+                if (response.status === 201) {
+                    const shortUrl = `${window.location.protocol}//${window.location.host}/${data.shortCode}`;
+                    showMessage(output, `
+                        <strong>Shortened successfully!</strong><br><br>
+                        <div class="url-display">
+                            <strong>Original URL:</strong><br>
+                            <a href="${data.url}" target="_blank">${data.url}</a><br><br>
+                            <strong>Short URL:</strong><br>
+                            <a href="${shortUrl}" target="_blank">${shortUrl}</a>
+                        </div>
+                        <strong>Short Code:</strong> ${data.shortCode}<br>
+                        <strong>Created at:</strong> ${new Date(data.createdAt).toLocaleString()}
+                    `);
+                } else {
+                    showMessage(output, data.error || 'Error creating short URL', true);
+                }
+            } catch (error) {
+                showMessage(output, 'Network error: ' + error.message, true);
+            }
+        });
+
+        // 3.2 Retrieve Original URL
+        document.getElementById('retrieveForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const code = document.getElementById('codeInput').value;
+            const output = document.getElementById('retrievedUrl');
+            output.textContent = "Processing...";
+
+            try {
+                const response = await fetch(`/shorten/${code}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage(output, `
+                        <strong>URL Found:</strong><br><br>
+                        <div class="url-display">
+                            <strong>Original URL:</strong><br>
+                            <a href="${data.url}" target="_blank">${data.url}</a>
+                        </div>
+                        <strong>Short Code:</strong> ${data.shortCode}<br>
+                        <strong>Created at:</strong> ${new Date(data.createdAt).toLocaleString()}<br>
+                        <strong>Last updated:</strong> ${new Date(data.updatedAt).toLocaleString()}
+                    `);
+                } else {
+                    showMessage(output, data.error || 'Short code not found', true);
+                }
+            } catch (error) {
+                showMessage(output, 'Network error: ' + error.message, true);
+            }
+        });
+
+        // 3.3 Update Short URL
+        document.getElementById('updateForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const code = document.getElementById('updateCodeInput').value;
+            const newUrl = document.getElementById('newUrlInput').value;
+            const output = document.getElementById('updatedUrl');
+            output.textContent = "Processing...";
+
+            try {
+                const response = await fetch(`/shorten/${code}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: newUrl })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const shortUrl = `${window.location.protocol}//${window.location.host}/${data.shortCode}`;
+                    showMessage(output, `
+                        <strong>URL updated successfully!</strong><br><br>
+                        <div class="url-display">
+                            <strong>New URL:</strong><br>
+                            <a href="${data.url}" target="_blank">${data.url}</a><br><br>
+                            <strong>Short URL:</strong><br>
+                            <a href="${shortUrl}" target="_blank">${shortUrl}</a>
+                        </div>
+                        <strong>Short Code:</strong> ${data.shortCode}<br>
+                        <strong>Last updated:</strong> ${new Date(data.updatedAt).toLocaleString()}
+                    `);
+                    
+                    // Clear the form inputs
+                    document.getElementById('updateCodeInput').value = '';
+                    document.getElementById('newUrlInput').value = '';
+                } else {
+                    showMessage(output, data.error || 'Error updating URL', true);
+                }
+            } catch (error) {
+                showMessage(output, 'Network error: ' + error.message, true);
+            }
+        });
+
+        // 3.4 Delete Short URL
+        document.getElementById('deleteForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const code = document.getElementById('deleteCodeInput').value;
+            const output = document.getElementById('deleteStatus');
+            output.textContent = "Processing...";
+
+            try {
+                const response = await fetch(`/shorten/${code}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.status === 204) {
+                    showMessage(output, '<strong>URL successfully deleted!</strong>');
+                    document.getElementById('deleteCodeInput').value = '';
+                } else {
+                    const data = await response.json();
+                    showMessage(output, data.error || 'Error deleting URL', true);
+                }
+            } catch (error) {
+                showMessage(output, 'Network error: ' + error.message, true);
+            }
+        });
+
+        // 3.5 Get URL Statistics
+        document.getElementById('statsForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const code = document.getElementById('statsCodeInput').value;
+            const output = document.getElementById('statsResult');
+            output.textContent = "Processing...";
+
+            try {
+                const response = await fetch(`/shorten/${code}/stats`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    output.innerHTML = `
+                        <strong>URL Statistics:</strong><br><br>
+                        <div class="url-display">
+                            <strong>Original URL:</strong><br>
+                            <a href="${data.url}" target="_blank">${data.url}</a>
+                        </div>
+                        <strong>Short Code:</strong> ${data.shortCode}<br>
+                        <strong>Created at:</strong> ${new Date(data.createdAt).toLocaleString()}<br>
+                        <strong>Last updated:</strong> ${new Date(data.updatedAt).toLocaleString()}<br>
+                        <strong>Times accessed:</strong> ${data.accessCount}
+                    `;
+                    output.className = 'success result-box';
+                } else {
+                    output.textContent = data.error || 'Short code not found';
+                    output.className = 'error result-box';
+                }
+            } catch (error) {
+                output.textContent = 'Network error: ' + error.message;
+                output.className = 'error result-box';
+            }
+        });
+    </script>
+</body>
+</html>
