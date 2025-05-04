@@ -26,11 +26,19 @@ def shorten_url():
     if not long_url:
         return jsonify({"error": "URL is required"}), 400
 
+    # Ensure URL starts with http:// or https://
+    if not (long_url.startswith('http://') or long_url.startswith('https://')):
+        long_url = 'http://' + long_url
+
     # Generate a unique short code
-    short_code = generate_short_code()
+    while True:
+        short_code = generate_short_code()
+        if short_code not in urls:
+            break
 
     # Store the URL
     urls[short_code] = {
+        'id': short_code,
         'url': long_url,
         'shortCode': short_code,
         'createdAt': datetime.now().isoformat(),
@@ -49,11 +57,11 @@ def redirect_to_url(short_code):
         # Initialize access count if it doesn't exist
         if short_code not in access_count:
             access_count[short_code] = 0
-        access_count[short_code] += 1  # Increment access count
+        access_count[short_code] += 1
         return redirect(url_data['url'])
     
     return jsonify({"error": "Short code not found"}), 404
-    
+
 @app.route('/shorten/<short_code>', methods=['GET'])
 def retrieve_url(short_code):
     """Retrieve original URL from short code"""
@@ -66,30 +74,25 @@ def retrieve_url(short_code):
 
 @app.route('/shorten/<short_code>', methods=['PUT'])
 def update_url(short_code):
-    """Update an existing short URL with a new short code"""
+    """Update an existing short URL"""
     data = request.get_json()
-    new_short_code = data.get('shortCode')
+    new_url = data.get('url')
 
-    if not new_short_code:
-        return jsonify({"error": "New short code is required"}), 400
+    if not new_url:
+        return jsonify({"error": "URL is required"}), 400
+
+    # Ensure URL starts with http:// or https://
+    if not (new_url.startswith('http://') or new_url.startswith('https://')):
+        new_url = 'http://' + new_url
 
     url_data = urls.get(short_code)
 
     if not url_data:
         return jsonify({"error": "Short code not found"}), 404
 
-    # Update the short code and other properties
-    url_data['shortCode'] = new_short_code
+    # Update the URL
+    url_data['url'] = new_url
     url_data['updatedAt'] = datetime.now().isoformat()
-
-    # Move the access count to the new short code if it exists
-    if short_code in access_count:
-        access_count[new_short_code] = access_count[short_code]
-        del access_count[short_code]
-
-    # Remove the old short code and add the new one
-    del urls[short_code]
-    urls[new_short_code] = url_data
 
     return jsonify(url_data)
 
@@ -97,19 +100,23 @@ def update_url(short_code):
 def delete_url(short_code):
     """Delete an existing short URL"""
     if short_code in urls:
+        # Delete from both dictionaries
         del urls[short_code]
-        del access_count[short_code]
+        if short_code in access_count:
+            del access_count[short_code]
         return '', 204
     
     return jsonify({"error": "Short code not found"}), 404
 
 @app.route('/shorten/<short_code>/stats', methods=['GET'])
 def get_statistics(short_code):
-    """Get statistics (access count) for a short URL"""
-    if short_code in access_count:
+    """Get statistics for a short URL"""
+    url_data = urls.get(short_code)
+    
+    if url_data:
         return jsonify({
-            "shortCode": short_code,
-            "accessCount": access_count[short_code]
+            **url_data,
+            "accessCount": access_count.get(short_code, 0)
         })
     
     return jsonify({"error": "Short code not found"}), 404
