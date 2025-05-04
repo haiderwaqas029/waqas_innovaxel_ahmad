@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>URL Shortener</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      margin: 40px auto;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      margin-top: 10px;
+    }
+    #result {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>URL Shortener</h2>
+  <form id="shortenForm">
+    <label for="url">Enter your long URL:</label>
+    <input type="text" id="url" name="url" required>
+    <button type="submit">Shorten</button>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    document.getElementById('shortenForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const urlInput = document.getElementById('url').value;
+
+      const formData = new FormData();
+      formData.append('url', urlInput);
+
+      const response = await fetch('/shorten', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      const resultDiv = document.getElementById('result');
+      if (response.ok) {
+        resultDiv.innerHTML = `Short URL: <a href="/${result.shortCode}" target="_blank">${window.location.origin}/${result.shortCode}</a>`;
+      } else {
+        resultDiv.innerHTML = `Error: ${result.error}`;
+      }
+    });
+  </script>
+</body>
+</html>
+
